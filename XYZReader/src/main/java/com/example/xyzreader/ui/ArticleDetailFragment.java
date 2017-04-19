@@ -6,12 +6,10 @@ import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
-import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v4.app.ShareCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.graphics.Palette;
@@ -26,28 +24,19 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.ImageLoader;
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
-import android.support.design.widget.CollapsingToolbarLayout;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
-/**
- * A fragment representing a single Article detail screen. This fragment is
- * either contained in a {@link ArticleListActivity} in two-pane mode (on
- * tablets) or a {@link ArticleDetailActivity} on handsets.
- */
 public class ArticleDetailFragment extends Fragment implements
         LoaderManager.LoaderCallbacks<Cursor> {
     private static final String TAG = "ArticleDetailFragment";
@@ -60,15 +49,18 @@ public class ArticleDetailFragment extends Fragment implements
     private int position;
     private View mRootView;
     private int mMutedColor = 0xFF333333;
+    private LinearLayout metaBar;
+    private TextView bylineView;
+    private TextView titleView;
+    private Toolbar toolbar;
 
-
-
+    private Palette.PaletteAsyncListener paletteListener;
     private ImageView mPhotoView;
 
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss");
     private SimpleDateFormat outputFormat = new SimpleDateFormat();
-    private GregorianCalendar START_OF_EPOCH = new GregorianCalendar(2,1,1);
+    private GregorianCalendar START_OF_EPOCH = new GregorianCalendar(2, 1, 1);
 
     public ArticleDetailFragment() {
     }
@@ -76,7 +68,7 @@ public class ArticleDetailFragment extends Fragment implements
     public static ArticleDetailFragment newInstance(long itemId, int position) {
         Bundle arguments = new Bundle();
         arguments.putLong(ARG_ITEM_ID, itemId);
-        arguments.putInt(POSITION,position);
+        arguments.putInt(POSITION, position);
         ArticleDetailFragment fragment = new ArticleDetailFragment();
         fragment.setArguments(arguments);
         return fragment;
@@ -106,12 +98,13 @@ public class ArticleDetailFragment extends Fragment implements
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
 
-
+        setPaleteListener();
         mRootView = inflater.inflate(R.layout.fragment_article_detail, container, false);
         mPhotoView = (ImageView) mRootView.findViewById(R.id.photo);
-        mPhotoView.setTransitionName(getString(R.string.article_photo)+position);
+        metaBar = (LinearLayout) mRootView.findViewById(R.id.meta_bar);
+        mPhotoView.setTransitionName(getString(R.string.article_photo) + position);
         mRootView.findViewById(R.id.share_fab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -126,6 +119,28 @@ public class ArticleDetailFragment extends Fragment implements
         return mRootView;
     }
 
+    private void setPaleteListener() {
+        paletteListener = new Palette.PaletteAsyncListener() {
+            public void onGenerated(Palette palette) {
+                int defaultColor = 0x000000;
+                int darkMutedColor = palette.getDarkMutedColor(defaultColor);
+                int lightMutedColor = palette.getLightMutedColor(defaultColor);
+
+                Palette.Swatch vibrant = palette.getVibrantSwatch();
+                if (vibrant != null) {
+                    metaBar.setBackgroundColor(vibrant.getRgb());
+                    titleView.setTextColor(vibrant.getTitleTextColor());
+                    bylineView.setTextColor(vibrant.getTitleTextColor());
+                } else {
+                    metaBar.setBackgroundColor(lightMutedColor);
+                    titleView.setTextColor(darkMutedColor);
+                    bylineView.setTextColor(darkMutedColor);
+                }
+
+
+            }
+        };
+    }
 
     private Date parsePublishedDate() {
         try {
@@ -143,20 +158,18 @@ public class ArticleDetailFragment extends Fragment implements
             return;
         }
 
-        TextView titleView = (TextView) mRootView.findViewById(R.id.article_title);
-        titleView.setTransitionName(getString(R.string.article_title)+position);
-        TextView bylineView = (TextView) mRootView.findViewById(R.id.article_byline);
+        titleView = (TextView) mRootView.findViewById(R.id.article_title);
+        titleView.setTransitionName(getString(R.string.article_title) + position);
+        bylineView = (TextView) mRootView.findViewById(R.id.article_byline);
         bylineView.setMovementMethod(new LinkMovementMethod());
         TextView bodyView = (TextView) mRootView.findViewById(R.id.article_body);
         CollapsingToolbarLayout collapsingToolbarLayout = (CollapsingToolbarLayout) mRootView.findViewById(R.id.collapsing_tool_bar);
-        //collapsingToolbarLayout.setTitleEnabled(false);
-        Toolbar toolbar = (Toolbar) mRootView.findViewById(R.id.toolbar);
-
+        toolbar = (Toolbar) mRootView.findViewById(R.id.toolbar);
         AppCompatActivity activity = (AppCompatActivity) getActivity();
         activity.setSupportActionBar(toolbar);
         toolbar.setNavigationIcon(R.drawable.ic_arrow_back);
         activity.getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        bodyView.setTypeface(Typeface.createFromAsset(getResources().getAssets(), "Rosario-Regular.ttf"));
+        bodyView.setTypeface(Typeface.createFromAsset(getResources().getAssets(), "RobotoSlab-Regular.ttf"));
 
         if (mCursor != null) {
             mRootView.setAlpha(0);
@@ -164,7 +177,9 @@ public class ArticleDetailFragment extends Fragment implements
             mRootView.animate().alpha(1);
             String title = mCursor.getString(ArticleLoader.Query.TITLE);
             titleView.setText(title);
-            collapsingToolbarLayout.setTitle(title);
+            if (null != collapsingToolbarLayout)
+                collapsingToolbarLayout.setTitle(title);
+
             activity.setTitle(title);
             Date publishedDate = parsePublishedDate();
             if (!publishedDate.before(START_OF_EPOCH.getTime())) {
@@ -182,34 +197,35 @@ public class ArticleDetailFragment extends Fragment implements
             } else {
                 // If date is before 1902, just show the string
                 Spanned subtitle = Html.fromHtml(
-                        outputFormat.format(publishedDate) + " by <font color='#ffffff'>"
+                        outputFormat.format(publishedDate) + " by <font color='#ffffff'>" + "<body style=\"text-align:justify;>"
                                 + mCursor.getString(ArticleLoader.Query.AUTHOR)
+                                + "</body>"
                                 + "</font>");
                 bylineView.setText(subtitle);
                 toolbar.setSubtitle(subtitle);
 
             }
-            bodyView.setText(Html.fromHtml(mCursor.getString(ArticleLoader.Query.BODY).replaceAll("(\r\n|\n)", "<br />")));
+            bodyView.setText(Html.fromHtml(mCursor.getString(ArticleLoader.Query.BODY).replaceAll("(\r\n\r\n)", "<br /><br />")));
 
             Picasso.with(getActivityCast()).load(mCursor.getString(ArticleLoader.Query.PHOTO_URL)).into(mPhotoView,
                     new Callback() {
                         @Override
                         public void onSuccess() {
-                            // Call the "scheduleStartPostponedTransition()" method
-                            // below when you know for certain that the shared element is
-                            // ready for the transition to begin.
                             scheduleStartPostponedTransition(mPhotoView);
+                            Bitmap bitmap = ((BitmapDrawable) mPhotoView.getDrawable()).getBitmap();
+                            setPaleteListener();
+                            Palette.from(bitmap).generate(paletteListener);
                         }
 
                         @Override
                         public void onError() {
-                            Log.e(TAG, "onError: loading image failed" );
+                            Log.e(TAG, "onError: loading image failed");
                         }
                     });
         } else {
             mRootView.setVisibility(View.GONE);
             titleView.setText("N/A");
-            bylineView.setText("N/A" );
+            bylineView.setText("N/A");
             bodyView.setText("N/A");
         }
     }
@@ -225,6 +241,7 @@ public class ArticleDetailFragment extends Fragment implements
                     }
                 });
     }
+
     @Override
     public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
         return ArticleLoader.newInstanceForItemId(getActivity(), mItemId);
@@ -254,7 +271,6 @@ public class ArticleDetailFragment extends Fragment implements
         mCursor = null;
         bindViews();
     }
-
 
 
 }

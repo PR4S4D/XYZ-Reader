@@ -2,29 +2,31 @@ package com.example.xyzreader.ui;
 
 import android.app.ActivityOptions;
 import android.app.LoaderManager;
-import android.app.SharedElementCallback;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.support.design.widget.AppBarLayout;
-import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.graphics.Palette;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.support.v7.widget.Toolbar;
 import android.text.Html;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.util.Pair;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -33,14 +35,13 @@ import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
 import com.example.xyzreader.data.UpdaterService;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Handler;
+
 
 public class ArticleListActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor>, SwipeRefreshLayout.OnRefreshListener {
@@ -48,31 +49,87 @@ public class ArticleListActivity extends AppCompatActivity implements
     private static final String TAG = ArticleListActivity.class.toString();
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RecyclerView mRecyclerView;
+    private Target target;
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss");
     private SimpleDateFormat outputFormat = new SimpleDateFormat();
     private GregorianCalendar START_OF_EPOCH = new GregorianCalendar(2, 1, 1);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("Inside onLoadFinished", "ArticleListActivity");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //setExitSharedElementCallback(mCallback);
-        final View toolbarContainerView = findViewById(R.id.toolbar_container);
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         mSwipeRefreshLayout.setOnRefreshListener(this);
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+
         getLoaderManager().initLoader(0, null, this);
-
-
 
         if (savedInstanceState == null) {
             refresh();
         }
     }
 
+
+    public static boolean isNetworkAvailable(Context context) {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    private void setImageTarget(final ViewHolder holder) {
+        target = new Target() {
+            @Override
+            public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
+                Palette.generateAsync(bitmap, new Palette.PaletteAsyncListener() {
+                    @Override
+                    public void onGenerated(Palette palette) {
+                        holder.thumbnailView.setImageBitmap(bitmap);
+
+                        int defaultColor = Color.BLACK;
+                        int darkMutedColor = palette.getDarkMutedColor(defaultColor);
+                        int lightMutedColor = palette.getLightMutedColor(defaultColor);
+                        Palette.Swatch vibrant = palette.getVibrantSwatch();
+                        if (vibrant != null) {
+                            holder.cardView.setCardBackgroundColor(vibrant.getRgb());
+                            holder.titleView.setTextColor(vibrant.getTitleTextColor());
+                            holder.subtitleView.setTextColor(vibrant.getTitleTextColor());
+                        } else {
+                            holder.cardView.setCardBackgroundColor(lightMutedColor);
+                            holder.titleView.setTextColor(darkMutedColor);
+                            holder.subtitleView.setTextColor(darkMutedColor);
+                        }
+
+                    }
+                });
+            }
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+                Log.e(TAG, "onBitmapFailed: image loading failed");
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+            }
+        };
+    }
+
     private void refresh() {
-        startService(new Intent(this, UpdaterService.class));
+        if (isNetworkAvailable(this)) {
+
+            startService(new Intent(this, UpdaterService.class));
+        } else {
+            showErrorMessage();
+
+        }
+    }
+
+    private void showErrorMessage() {
+        Snackbar.make(mRecyclerView, "No Connectivity!", Snackbar.LENGTH_SHORT).show();
     }
 
     @Override
@@ -107,6 +164,7 @@ public class ArticleListActivity extends AppCompatActivity implements
 
     @Override
     public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+
         return ArticleLoader.newAllArticlesInstance(this);
     }
 
@@ -116,7 +174,7 @@ public class ArticleListActivity extends AppCompatActivity implements
         Adapter adapter = new Adapter(cursor);
         adapter.setHasStableIds(true);
         mRecyclerView.setAdapter(adapter);
-        int columnCount = getResources().getInteger(R.integer.list_column_count);
+        int columnCount = getResources().getInteger(R.integer.grid_size);
         StaggeredGridLayoutManager sglm =
                 new StaggeredGridLayoutManager(columnCount, StaggeredGridLayoutManager.VERTICAL);
         mRecyclerView.setLayoutManager(sglm);
@@ -158,10 +216,10 @@ public class ArticleListActivity extends AppCompatActivity implements
                             ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
                     Pair[] pairs = new Pair[2];
                     View titleView = view.findViewById(R.id.article_title);
-                    pairs[0] = new Pair<>(titleView,titleView.getTransitionName());
                     View thumbnailView = view.findViewById(R.id.thumbnail);
-                    pairs[1] = new Pair<>(thumbnailView,thumbnailView.getTransitionName());
-                    ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(ArticleListActivity.this,pairs);
+                    pairs[0] = new Pair<>(titleView, titleView.getTransitionName());
+                    pairs[1] = new Pair<>(thumbnailView, thumbnailView.getTransitionName());
+                    ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(ArticleListActivity.this, pairs);
                     startActivity(intent, options.toBundle());
                     view.setVisibility(View.VISIBLE
                     );
@@ -201,14 +259,13 @@ public class ArticleListActivity extends AppCompatActivity implements
                                 + "<br/>" + " by "
                                 + mCursor.getString(ArticleLoader.Query.AUTHOR)));
             }
-            /*holder.thumbnailView.setImageUrl(
-                    mCursor.getString(ArticleLoader.Query.THUMB_URL),
-                    ImageLoaderHelper.getInstance(ArticleListActivity.this).getImageLoader());*/
-            Picasso.with(ArticleListActivity.this).load(mCursor.getString(ArticleLoader.Query.THUMB_URL)).into(holder.thumbnailView);
-            holder.thumbnailView.setTransitionName(getString(R.string.article_photo)+position);
-            holder.titleView.setTransitionName(getString(R.string.article_title)+position);
-            holder.titleView.setTag(getString(R.string.article_title)+position);
-            //holder.thumbnailView.setAspectRatio(mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO));
+
+            setImageTarget(holder);
+            Picasso.with(ArticleListActivity.this).load(mCursor.getString(ArticleLoader.Query.THUMB_URL)).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).into(target);
+            holder.thumbnailView.setTransitionName(getString(R.string.article_photo) + position);
+            holder.titleView.setTransitionName(getString(R.string.article_title) + position);
+            holder.cardView.setTransitionName(getString(R.string.background) + position);
+            holder.titleView.setTag(getString(R.string.article_title) + position);
         }
 
         @Override
@@ -217,16 +274,18 @@ public class ArticleListActivity extends AppCompatActivity implements
         }
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-        public ImageView thumbnailView;
-        public TextView titleView;
-        public TextView subtitleView;
+    private static class ViewHolder extends RecyclerView.ViewHolder {
+        private ImageView thumbnailView;
+        private TextView titleView;
+        private TextView subtitleView;
+        private CardView cardView;
 
-        public ViewHolder(View view) {
+        private ViewHolder(View view) {
             super(view);
             thumbnailView = (ImageView) view.findViewById(R.id.thumbnail);
             titleView = (TextView) view.findViewById(R.id.article_title);
             subtitleView = (TextView) view.findViewById(R.id.article_subtitle);
+            cardView = (CardView) view.findViewById(R.id.card_view);
         }
     }
 }

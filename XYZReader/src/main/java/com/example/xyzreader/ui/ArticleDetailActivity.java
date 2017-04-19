@@ -23,7 +23,6 @@ import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
 
 
-
 /**
  * An activity representing a single Article detail screen, letting you swipe between articles.
  */
@@ -34,7 +33,6 @@ public class ArticleDetailActivity extends AppCompatActivity
     private long mStartId;
 
     private long mSelectedItemId;
-    private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
     private int mTopInset;
 
     private ViewPager mPager;
@@ -50,7 +48,6 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.i("Inside onCreate", "Yeah");
         postponeEnterTransition();
         super.onCreate(savedInstanceState);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -120,15 +117,12 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     @Override
     public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        Log.i("Inside onCreateLoader", "Yeah");
         ArticleLoader articleLoader = ArticleLoader.newAllArticlesInstance(this);
-        Log.i("Loaded onCreateLoader", "Yeah");
         return articleLoader;
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        Log.i("Inside onLoadFinished", "Yeah");
         mCursor = cursor;
         mPagerAdapter.notifyDataSetChanged();
 
@@ -154,32 +148,9 @@ public class ArticleDetailActivity extends AppCompatActivity
         mPagerAdapter.notifyDataSetChanged();
     }
 
-    private void scheduleStartPostponedTransition(final View sharedElement) {
-        sharedElement.getViewTreeObserver().addOnPreDrawListener(
-                new ViewTreeObserver.OnPreDrawListener() {
-                    @Override
-                    public boolean onPreDraw() {
-                        sharedElement.getViewTreeObserver().removeOnPreDrawListener(this);
-                        startPostponedEnterTransition();
-                        return true;
-                    }
-                });
-    }
-
-
     private class MyPagerAdapter extends FragmentStatePagerAdapter {
         public MyPagerAdapter(FragmentManager fm) {
             super(fm);
-        }
-
-        @Override
-        public void setPrimaryItem(ViewGroup container, int position, Object object) {
-            super.setPrimaryItem(container, position, object);
-            ArticleDetailFragment fragment = (ArticleDetailFragment) object;
-           /* if (fragment != null) {
-                mSelectedItemUpButtonFloor = fragment.getUpButtonFloor();
-                updateUpButtonPosition();
-            }*/
         }
 
         @Override
@@ -187,7 +158,7 @@ public class ArticleDetailActivity extends AppCompatActivity
             Log.i("getItem: ", String.valueOf(position));
             mCursor.moveToPosition(position);
             Log.i("getItem: ", String.valueOf(position));
-            return ArticleDetailFragment.newInstance(mCursor.getLong(ArticleLoader.Query._ID),position);
+            return ArticleDetailFragment.newInstance(mCursor.getLong(ArticleLoader.Query._ID), position);
 
         }
 
