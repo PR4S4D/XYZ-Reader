@@ -117,8 +117,7 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     @Override
     public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        ArticleLoader articleLoader = ArticleLoader.newAllArticlesInstance(this);
-        return articleLoader;
+        return ArticleLoader.newAllArticlesInstance(this);
     }
 
     @Override
@@ -149,7 +148,7 @@ public class ArticleDetailActivity extends AppCompatActivity
     }
 
     private class MyPagerAdapter extends FragmentStatePagerAdapter {
-        public MyPagerAdapter(FragmentManager fm) {
+        private MyPagerAdapter(FragmentManager fm) {
             super(fm);
         }
 

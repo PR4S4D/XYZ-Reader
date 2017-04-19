@@ -77,12 +77,10 @@ public class ArticleDetailFragment extends Fragment implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         if (getArguments().containsKey(ARG_ITEM_ID)) {
             mItemId = getArguments().getLong(ARG_ITEM_ID);
             position = getArguments().getInt(POSITION);
         }
-
         setHasOptionsMenu(true);
     }
 
@@ -118,6 +116,7 @@ public class ArticleDetailFragment extends Fragment implements
         bindViews();
         return mRootView;
     }
+
 
     private void setPaleteListener() {
         paletteListener = new Palette.PaletteAsyncListener() {
@@ -230,6 +229,7 @@ public class ArticleDetailFragment extends Fragment implements
         }
     }
 
+    //ref: http://guides.codepath.com/android/shared-element-activity-transition
     private void scheduleStartPostponedTransition(final View sharedElement) {
         sharedElement.getViewTreeObserver().addOnPreDrawListener(
                 new ViewTreeObserver.OnPreDrawListener() {

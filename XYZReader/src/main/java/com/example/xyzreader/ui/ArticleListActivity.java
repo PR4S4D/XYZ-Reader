@@ -79,8 +79,9 @@ public class ArticleListActivity extends AppCompatActivity implements
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    private void setImageTarget(final ViewHolder holder) {
-        target = new Target() {
+    //ref: http://blog.brightinventions.pl/playing-with-material-design-toolbar-palette/
+    private Target getImageTarget(final ViewHolder holder) {
+        return new Target() {
             @Override
             public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
                 Palette.generateAsync(bitmap, new Palette.PaletteAsyncListener() {
@@ -260,8 +261,8 @@ public class ArticleListActivity extends AppCompatActivity implements
                                 + mCursor.getString(ArticleLoader.Query.AUTHOR)));
             }
 
-            setImageTarget(holder);
-            Picasso.with(ArticleListActivity.this).load(mCursor.getString(ArticleLoader.Query.THUMB_URL)).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).into(target);
+
+            Picasso.with(getApplicationContext()).load(mCursor.getString(ArticleLoader.Query.THUMB_URL)).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).into( getImageTarget(holder));
             holder.thumbnailView.setTransitionName(getString(R.string.article_photo) + position);
             holder.titleView.setTransitionName(getString(R.string.article_title) + position);
             holder.cardView.setTransitionName(getString(R.string.background) + position);
@@ -274,11 +275,11 @@ public class ArticleListActivity extends AppCompatActivity implements
         }
     }
 
-    private static class ViewHolder extends RecyclerView.ViewHolder {
-        private ImageView thumbnailView;
-        private TextView titleView;
-        private TextView subtitleView;
-        private CardView cardView;
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        public ImageView thumbnailView;
+        public TextView titleView;
+        public TextView subtitleView;
+        public CardView cardView;
 
         private ViewHolder(View view) {
             super(view);
