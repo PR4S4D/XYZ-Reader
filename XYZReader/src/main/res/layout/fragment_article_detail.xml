@@ -38,6 +38,7 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
+                android:elevation="4dp"
                 android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
                 app:layout_collapseMode="pin"
                 app:layout_scrollFlags="scroll|enterAlways"
@@ -110,7 +111,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:layout_gravity="bottom|right" />
+        android:layout_gravity="bottom|end" />
 
 
 </android.support.design.widget.CoordinatorLayout>

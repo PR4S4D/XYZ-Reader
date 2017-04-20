@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v4.app.ShareCompat;
@@ -42,17 +43,14 @@ public class ArticleDetailFragment extends Fragment implements
     private static final String TAG = "ArticleDetailFragment";
     private static final String POSITION = "position";
     public static final String ARG_ITEM_ID = "item_id";
-    private static final float PARALLAX_FACTOR = 1.25f;
 
     private Cursor mCursor;
     private long mItemId;
     private int position;
     private View mRootView;
-    private int mMutedColor = 0xFF333333;
     private LinearLayout metaBar;
     private TextView bylineView;
     private TextView titleView;
-    private Toolbar toolbar;
 
     private Palette.PaletteAsyncListener paletteListener;
     private ImageView mPhotoView;
@@ -163,7 +161,7 @@ public class ArticleDetailFragment extends Fragment implements
         bylineView.setMovementMethod(new LinkMovementMethod());
         TextView bodyView = (TextView) mRootView.findViewById(R.id.article_body);
         CollapsingToolbarLayout collapsingToolbarLayout = (CollapsingToolbarLayout) mRootView.findViewById(R.id.collapsing_tool_bar);
-        toolbar = (Toolbar) mRootView.findViewById(R.id.toolbar);
+        Toolbar toolbar = (Toolbar) mRootView.findViewById(R.id.toolbar);
         AppCompatActivity activity = (AppCompatActivity) getActivity();
         activity.setSupportActionBar(toolbar);
         toolbar.setNavigationIcon(R.drawable.ic_arrow_back);
@@ -182,29 +180,57 @@ public class ArticleDetailFragment extends Fragment implements
             activity.setTitle(title);
             Date publishedDate = parsePublishedDate();
             if (!publishedDate.before(START_OF_EPOCH.getTime())) {
-                Spanned subTitle = Html.fromHtml(
-                        DateUtils.getRelativeTimeSpanString(
-                                publishedDate.getTime(),
-                                System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
-                                DateUtils.FORMAT_ABBREV_ALL).toString()
-                                + " by <font color='#ffffff'>"
-                                + mCursor.getString(ArticleLoader.Query.AUTHOR)
-                                + "</font>");
+                Spanned subTitle = null;
+
+                if (Build.VERSION.SDK_INT > 24) {
+                    subTitle = Html.fromHtml(
+                            DateUtils.getRelativeTimeSpanString(
+                                    publishedDate.getTime(),
+                                    System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
+                                    DateUtils.FORMAT_ABBREV_ALL).toString()
+                                    + " by <font color='#ffffff'>"
+                                    + mCursor.getString(ArticleLoader.Query.AUTHOR)
+                                    + "</font>", Html.FROM_HTML_MODE_COMPACT);
+                } else {
+                    subTitle = Html.fromHtml(
+                            DateUtils.getRelativeTimeSpanString(
+                                    publishedDate.getTime(),
+                                    System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
+                                    DateUtils.FORMAT_ABBREV_ALL).toString()
+                                    + " by <font color='#ffffff'>"
+                                    + mCursor.getString(ArticleLoader.Query.AUTHOR)
+                                    + "</font>");
+                }
+
                 bylineView.setText(subTitle);
 
 
             } else {
+                Spanned subtitle = null;
                 // If date is before 1902, just show the string
-                Spanned subtitle = Html.fromHtml(
-                        outputFormat.format(publishedDate) + " by <font color='#ffffff'>" + "<body style=\"text-align:justify;>"
-                                + mCursor.getString(ArticleLoader.Query.AUTHOR)
-                                + "</body>"
-                                + "</font>");
+                if (Build.VERSION.SDK_INT > 24) {
+                    subtitle = Html.fromHtml(
+                            outputFormat.format(publishedDate) + " by <font color='#ffffff'>" + "<body style=\"text-align:justify;>"
+                                    + mCursor.getString(ArticleLoader.Query.AUTHOR)
+                                    + "</body>"
+                                    + "</font>", Html.FROM_HTML_MODE_COMPACT);
+                } else {
+                    subtitle = Html.fromHtml(
+                            outputFormat.format(publishedDate) + " by <font color='#ffffff'>" + "<body style=\"text-align:justify;>"
+                                    + mCursor.getString(ArticleLoader.Query.AUTHOR)
+                                    + "</body>"
+                                    + "</font>");
+                }
                 bylineView.setText(subtitle);
                 toolbar.setSubtitle(subtitle);
 
             }
-            bodyView.setText(Html.fromHtml(mCursor.getString(ArticleLoader.Query.BODY).replaceAll("(\r\n\r\n)", "<br /><br />")));
+            if (Build.VERSION.SDK_INT > 24) {
+                bodyView.setText(Html.fromHtml(mCursor.getString(ArticleLoader.Query.BODY).replaceAll("(\r\n\r\n)", "<br /><br />"), Html.FROM_HTML_MODE_COMPACT));
+            } else {
+                bodyView.setText(Html.fromHtml(mCursor.getString(ArticleLoader.Query.BODY).replaceAll("(\r\n\r\n)", "<br /><br />")));
+
+            }
 
             Picasso.with(getActivityCast()).load(mCursor.getString(ArticleLoader.Query.PHOTO_URL)).into(mPhotoView,
                     new Callback() {

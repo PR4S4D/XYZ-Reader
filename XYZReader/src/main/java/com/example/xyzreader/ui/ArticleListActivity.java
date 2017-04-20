@@ -13,6 +13,7 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -49,7 +50,6 @@ public class ArticleListActivity extends AppCompatActivity implements
     private static final String TAG = ArticleListActivity.class.toString();
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RecyclerView mRecyclerView;
-    private Target target;
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss");
     private SimpleDateFormat outputFormat = new SimpleDateFormat();
@@ -84,11 +84,10 @@ public class ArticleListActivity extends AppCompatActivity implements
         return new Target() {
             @Override
             public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
-                Palette.generateAsync(bitmap, new Palette.PaletteAsyncListener() {
+                Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
                     @Override
                     public void onGenerated(Palette palette) {
                         holder.thumbnailView.setImageBitmap(bitmap);
-
                         int defaultColor = Color.BLACK;
                         int darkMutedColor = palette.getDarkMutedColor(defaultColor);
                         int lightMutedColor = palette.getLightMutedColor(defaultColor);
@@ -102,7 +101,6 @@ public class ArticleListActivity extends AppCompatActivity implements
                             holder.titleView.setTextColor(darkMutedColor);
                             holder.subtitleView.setTextColor(darkMutedColor);
                         }
-
                     }
                 });
             }
@@ -246,23 +244,39 @@ public class ArticleListActivity extends AppCompatActivity implements
             holder.titleView.setText(mCursor.getString(ArticleLoader.Query.TITLE));
             Date publishedDate = parsePublishedDate();
             if (!publishedDate.before(START_OF_EPOCH.getTime())) {
-
-                holder.subtitleView.setText(Html.fromHtml(
-                        DateUtils.getRelativeTimeSpanString(
-                                publishedDate.getTime(),
-                                System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
-                                DateUtils.FORMAT_ABBREV_ALL).toString()
-                                + "<br/>" + " by "
-                                + mCursor.getString(ArticleLoader.Query.AUTHOR)));
+                if (Build.VERSION.SDK_INT > 24) {
+                    holder.subtitleView.setText(Html.fromHtml(
+                            DateUtils.getRelativeTimeSpanString(
+                                    publishedDate.getTime(),
+                                    System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
+                                    DateUtils.FORMAT_ABBREV_ALL).toString()
+                                    + "<br/>" + " by "
+                                    + mCursor.getString(ArticleLoader.Query.AUTHOR), Html.FROM_HTML_MODE_COMPACT));
+                } else {
+                    holder.subtitleView.setText(Html.fromHtml(
+                            DateUtils.getRelativeTimeSpanString(
+                                    publishedDate.getTime(),
+                                    System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
+                                    DateUtils.FORMAT_ABBREV_ALL).toString()
+                                    + "<br/>" + " by "
+                                    + mCursor.getString(ArticleLoader.Query.AUTHOR)));
+                }
             } else {
-                holder.subtitleView.setText(Html.fromHtml(
-                        outputFormat.format(publishedDate)
-                                + "<br/>" + " by "
-                                + mCursor.getString(ArticleLoader.Query.AUTHOR)));
+                if (Build.VERSION.SDK_INT > 24) {
+                    holder.subtitleView.setText(Html.fromHtml(
+                            outputFormat.format(publishedDate)
+                                    + "<br/>" + " by "
+                                    + mCursor.getString(ArticleLoader.Query.AUTHOR), Html.FROM_HTML_SEPARATOR_LINE_BREAK_BLOCKQUOTE));
+                } else {
+                    holder.subtitleView.setText(Html.fromHtml(
+                            outputFormat.format(publishedDate)
+                                    + "<br/>" + " by "
+                                    + mCursor.getString(ArticleLoader.Query.AUTHOR)));
+                }
             }
 
 
-            Picasso.with(getApplicationContext()).load(mCursor.getString(ArticleLoader.Query.THUMB_URL)).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).into( getImageTarget(holder));
+            Picasso.with(getApplicationContext()).load(mCursor.getString(ArticleLoader.Query.THUMB_URL)).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).into(getImageTarget(holder));
             holder.thumbnailView.setTransitionName(getString(R.string.article_photo) + position);
             holder.titleView.setTransitionName(getString(R.string.article_title) + position);
             holder.cardView.setTransitionName(getString(R.string.background) + position);
@@ -275,11 +289,11 @@ public class ArticleListActivity extends AppCompatActivity implements
         }
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-        public ImageView thumbnailView;
-        public TextView titleView;
-        public TextView subtitleView;
-        public CardView cardView;
+    private static class ViewHolder extends RecyclerView.ViewHolder {
+        private ImageView thumbnailView;
+        private TextView titleView;
+        private TextView subtitleView;
+        private CardView cardView;
 
         private ViewHolder(View view) {
             super(view);
