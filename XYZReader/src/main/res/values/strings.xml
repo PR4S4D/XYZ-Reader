@@ -11,5 +11,6 @@
     <string name="article_title">article title</string>
     <string name="article_photo">Article Photo</string>
     <string name="background">Background</string>
+    <string name="no_connectivity">No Connectivity!</string>
 
 </resources>

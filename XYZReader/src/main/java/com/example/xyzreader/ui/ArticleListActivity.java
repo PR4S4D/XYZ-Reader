@@ -128,7 +128,7 @@ public class ArticleListActivity extends AppCompatActivity implements
     }
 
     private void showErrorMessage() {
-        Snackbar.make(mRecyclerView, "No Connectivity!", Snackbar.LENGTH_SHORT).show();
+        Snackbar.make(mRecyclerView, R.string.no_connectivity, Snackbar.LENGTH_SHORT).show();
     }
 
     @Override
