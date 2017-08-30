@@ -1,5 +1,5 @@
-= XYZ Reader  
-Material designed app for reading ebooks
+##  XYZ Reader  
+ Material designed app for reading ebooks
 
 
 ## Getting Started
