@@ -1,3 +1,12 @@
-= XYZ Reader Starter Code
+= XYZ Reader  
+Material designed app for reading ebooks
 
-This repository stores the starter code for the XYZ Reader project in Udacity's Android Nanodegree.
+
+## Getting Started
+XYZ Reader uses the Gradle build system. To build this project, use the "gradlew build" command or use "Import Project" in Android Studio.
+
+### Prerequisites
+```
+Android SDK 25
+Android Build Tools v25.0.2
+Android Support Repository
